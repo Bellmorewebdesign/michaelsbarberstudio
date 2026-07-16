@@ -82,14 +82,15 @@ function App() {
   useLayoutEffect(() => {
     if (!root.current) return
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const media = gsap.matchMedia()
+    const refresh = () => ScrollTrigger.refresh()
     const context = gsap.context(() => {
       if (reducedMotion) return
 
       gsap.from('.hero-content > *', { opacity: 0, y: 24, duration: .75, stagger: .08, ease: 'power3.out' })
       gsap.from('.hero-visual', { opacity: 0, x: 30, duration: .9, ease: 'power3.out' })
 
-      const desktop = gsap.matchMedia()
-      desktop.add('(min-width: 900px)', () => {
+      media.add('(min-width: 900px)', () => {
         const transition = gsap.timeline({
           scrollTrigger: {
             trigger: '.signature',
@@ -106,6 +107,28 @@ function App() {
           .to('.signature-panel-left', { xPercent: -103, duration: .8, ease: 'power2.inOut' }, .25)
           .to('.signature-panel-right', { xPercent: 103, duration: .8, ease: 'power2.inOut' }, .25)
           .fromTo('.signature-reveal', { opacity: .65, y: 18 }, { opacity: 1, y: 0, duration: .45 }, .65)
+      })
+
+      media.add('(max-width: 899px)', () => {
+        const transition = gsap.timeline({
+          scrollTrigger: {
+            trigger: '.signature',
+            start: 'top top',
+            end: () => `+=${Math.round(window.innerHeight * 1.5)}`,
+            scrub: .5,
+            pin: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+          },
+        })
+        transition
+          .fromTo('.signature-line', { scaleX: 0 }, { scaleX: 1, duration: .52, ease: 'power2.inOut' }, 0)
+          .to('.signature-logo', { scale: .78, y: -10, duration: .42, ease: 'power2.inOut' }, 0)
+          .to('.signature-panel-left', { yPercent: -103, duration: .78, ease: 'power2.inOut' }, .22)
+          .to('.signature-panel-right', { yPercent: 103, duration: .78, ease: 'power2.inOut' }, .22)
+          .fromTo('.signature-reveal', { opacity: .65, y: 14 }, { opacity: 1, y: 0, duration: .4 }, .58)
+
+        return () => transition.scrollTrigger?.kill()
       })
 
       gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((element) => {
@@ -125,14 +148,17 @@ function App() {
         })
       })
 
-      const refresh = () => ScrollTrigger.refresh()
       document.fonts.ready.then(refresh)
       const images = Array.from(root.current?.querySelectorAll('img') ?? [])
       images.forEach((image) => { if (!image.complete) image.addEventListener('load', refresh, { once: true }) })
       requestAnimationFrame(refresh)
     }, root)
 
+    window.addEventListener('orientationchange', refresh)
+
     return () => {
+      window.removeEventListener('orientationchange', refresh)
+      media.revert()
       context.revert()
     }
   }, [])
