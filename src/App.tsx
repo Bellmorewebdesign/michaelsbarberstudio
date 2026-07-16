@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ArrowLeft, ArrowRight, Instagram, MapPin, Menu, Phone, Scissors, Star, X } from 'lucide-react'
@@ -10,6 +10,7 @@ import interiorLong from '../Screenshot 2026-07-16 134529.png'
 import waitingArea from '../Screenshot 2026-07-16 134548.png'
 import adultCut from '../Screenshot 2026-07-16 134620.png'
 import kidsCollage from '../Screenshot 2026-07-16 134640.png'
+import { businessHours, getBusinessStatus } from './businessHours'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -32,17 +33,45 @@ const services = [
 
 const reviews = [
   { quote: 'High quality experience.', name: 'Google customer', platform: 'Google Review' },
-  { quote: 'Best Barbershop around — clean, great atmosphere, cuts are amazing.', name: 'Google customer', platform: 'Google Review' },
+  { quote: 'Best Barbershop around. Clean, great atmosphere, cuts are amazing.', name: 'Google customer', platform: 'Google Review' },
   { quote: 'I took my seven year old and Michael was patient and so kind.', name: 'Jaclyn Tobin', platform: 'Google Review' },
-]
-
-const hours = [
-  ['Monday', '10 AM–7 PM'], ['Tuesday', '10 AM–7 PM'], ['Wednesday', '10 AM–7 PM'],
-  ['Thursday', '10 AM–7 PM'], ['Friday', '10 AM–7 PM'], ['Saturday', '9 AM–6 PM'], ['Sunday', '10 AM–4 PM'],
 ]
 
 function BookLink({ children = 'Book on Booksy', className = '' }: { children?: React.ReactNode; className?: string }) {
   return <a href={BOOKSY_URL} target="_blank" rel="noopener noreferrer" className={`button ${className}`}><span>{children}</span><ArrowRight size={15} /></a>
+}
+
+function BusinessStatusDisplay() {
+  const [status, setStatus] = useState(() => getBusinessStatus())
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setStatus(getBusinessStatus()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  return <div className={`business-status ${status.isOpen ? 'is-open' : 'is-closed'}`} aria-live="polite">
+    <span className="status-dot" aria-hidden="true" />
+    <span>{status.message}</span>
+  </div>
+}
+
+function BusinessHours() {
+  const [status, setStatus] = useState(() => getBusinessStatus())
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setStatus(getBusinessStatus()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  return <div className="hours">
+    <p className="hours-label">Studio hours</p>
+    {businessHours.map(({ day, hoursLabel }) => {
+      const isToday = day === status.currentDay
+      return <div className={isToday ? 'hours-row is-today' : 'hours-row'} key={day}>
+        <span>{day}</span><strong>{hoursLabel}</strong>{isToday && <small>Today</small>}
+      </div>
+    })}
+  </div>
 }
 
 function App() {
@@ -76,7 +105,7 @@ function App() {
           .to('.signature-line', { scaleX: 1, duration: .6, ease: 'power2.inOut' }, 0)
           .to('.signature-panel-left', { xPercent: -103, duration: .8, ease: 'power2.inOut' }, .25)
           .to('.signature-panel-right', { xPercent: 103, duration: .8, ease: 'power2.inOut' }, .25)
-          .fromTo('.signature-reveal', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: .45 }, .65)
+          .fromTo('.signature-reveal', { opacity: .65, y: 18 }, { opacity: 1, y: 0, duration: .45 }, .65)
       })
 
       gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((element) => {
@@ -131,6 +160,7 @@ function App() {
             <p className="eyebrow">East Islip, New York</p>
             <h1>Precision,<br /><em>Refined.</em></h1>
             <p className="hero-copy">East Islip’s newest upscale barber studio, specializing in skin fades, hot towel shaves, tapers, and sharp shape ups.</p>
+            <BusinessStatusDisplay />
             <div className="hero-actions"><BookLink /><a className="text-link" href={PHONE_URL}><Phone size={15} />Call the Studio</a></div>
           </div>
           <div className="hero-visual">
@@ -142,7 +172,10 @@ function App() {
       </section>
 
       <section className="signature" aria-label="Transition into services">
-        <div className="signature-reveal"><span>01</span><p>Services & pricing</p><ArrowRight /></div>
+        <div className="signature-reveal">
+          <div className="signature-label signature-label-left"><strong>01</strong><span>Services</span></div>
+          <div className="signature-label signature-label-right"><span>Pricing</span><ArrowRight /></div>
+        </div>
         <div className="signature-panel signature-panel-left"><img src={stations} alt="Barber stations" /></div>
         <div className="signature-panel signature-panel-right"><img src={stations} alt="" /></div>
         <img className="signature-logo" src={logo} alt="Michael’s Barber Studio" />
@@ -200,7 +233,7 @@ function App() {
             <div className="detail-row"><MapPin /><p>80 Carleton Ave<br />East Islip, NY 11730</p></div>
             <div className="detail-row"><Phone /><a href={PHONE_URL}>(631) 948-5475</a></div>
             <div className="detail-row"><Instagram /><a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">@michaelsbarberstudio</a></div>
-            <div className="hours"><p className="hours-label">Studio hours</p>{hours.map(([day, time]) => <div key={day}><span>{day}</span><strong>{time}</strong></div>)}</div>
+            <BusinessHours />
           </div>
         </div>
       </section>
